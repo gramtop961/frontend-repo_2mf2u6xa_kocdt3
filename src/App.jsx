@@ -9,9 +9,10 @@ const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 export default function App() {
   const [subject, setSubject] = useState('Logo for a modern coffee brand')
   const [depth, setDepth] = useState(2)
+  const [simpleMode, setSimpleMode] = useState(true)
   const [templates, setTemplates] = useState([])
   const [themes, setThemes] = useState([])
-  const [template, setTemplate] = useState('logo_brief')
+  const [template, setTemplate] = useState('classic')
   const [theme, setTheme] = useState('dark')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,6 +35,10 @@ export default function App() {
     boot()
   }, [])
 
+  useEffect(() => {
+    if (simpleMode) setDepth(2)
+  }, [simpleMode])
+
   async function generate() {
     setLoading(true)
     setError('')
@@ -41,7 +46,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, depth, template, style: theme })
+        body: JSON.stringify({ subject, depth: simpleMode ? 2 : depth, template, style: theme })
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
@@ -75,14 +80,25 @@ export default function App() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Depth</label>
-              <input type="range" min="1" max="3" value={depth} onChange={(e)=> setDepth(parseInt(e.target.value))} className="mt-2 w-full" />
-              <div className="text-sm text-slate-500">{depth} levels</div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <input id="simple" type="checkbox" checked={simpleMode} onChange={(e)=> setSimpleMode(e.target.checked)} />
+                <label htmlFor="simple" className="text-sm text-slate-700">Simple, explanatory mode</label>
+              </div>
+              <div className="text-xs text-slate-500">Keeps it to two easy levels</div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Template</label>
+              <label className="block text-sm font-medium text-slate-700">Depth</label>
+              <input type="range" min="1" max="3" value={depth} onChange={(e)=> setDepth(parseInt(e.target.value))} className="mt-2 w-full" disabled={simpleMode} />
+              <div className="text-sm text-slate-500">{simpleMode ? '2 levels (simple)' : `${depth} levels`}</div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-slate-700">Template</label>
+                <span className="text-xs text-slate-500">Tip: "Classic" is the most readable</span>
+              </div>
               <TemplatePicker templates={templates} value={template} onChange={setTemplate} />
             </div>
 
@@ -104,7 +120,7 @@ export default function App() {
           </div>
 
           <div>
-            <MapCanvas data={result} />
+            <MapCanvas data={result} simple={simpleMode} />
           </div>
         </div>
       </section>
